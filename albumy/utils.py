@@ -22,7 +22,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from albumy.extensions import db
 from albumy.models import User
 from albumy.settings import Operations
-
+# print(PIL.__version__)
 
 def generate_token(user, operation, expire_in=None, **kwargs):
     s = Serializer(current_app.config['SECRET_KEY'], expire_in)
@@ -66,20 +66,27 @@ def rename_image(old_filename):
     new_filename = uuid.uuid4().hex + ext
     return new_filename
 
-
+# use different approach due to the package version issue
 def resize_image(image, filename, base_width):
+    # extract filename and extension
     filename, ext = os.path.splitext(filename)
+    # start processing image upload
     img = Image.open(image)
+    # check if resizing is needed
     if img.size[0] <= base_width:
+        # print("ok")
         return filename + ext
+    # find new dimensions
     w_percent = (base_width / float(img.size[0]))
     h_size = int((float(img.size[1]) * float(w_percent)))
-    img = img.resize((base_width, h_size), PIL.Image.ANTIALIAS)
-
+    # Resize the image using Image.LANCZOS
+    img = img.resize((base_width, h_size), Image.LANCZOS)
+    
+    # Append suffix and save the image
     filename += current_app.config['ALBUMY_PHOTO_SUFFIX'][base_width] + ext
     img.save(os.path.join(current_app.config['ALBUMY_UPLOAD_PATH'], filename), optimize=True, quality=85)
+    
     return filename
-
 
 def is_safe_url(target):
     ref_url = urlparse(request.host_url)

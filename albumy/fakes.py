@@ -88,7 +88,7 @@ def fake_photo(count=10):
     # photos
     upload_path = current_app.config['ALBUMY_UPLOAD_PATH']
     for i in range(count):
-        print(i)
+        # print(i)
 
         filename = 'random_%d.jpg' % i
         r = lambda: random.randint(128, 255)
@@ -107,6 +107,7 @@ def fake_photo(count=10):
 
         # Attach Azure Tags
         azure_tags = fake_azure_tags(img_path)
+        # Testing statement
         print(f"Azure Vision Tags for {filename}: {azure_tags}")
 
         # Add the azure Tags to the photo
