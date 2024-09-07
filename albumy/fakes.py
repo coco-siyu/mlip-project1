@@ -7,7 +7,10 @@
 """
 import os
 import random
-
+from azure.cognitiveservices.vision.computervision import ComputerVisionClient
+from azure.cognitiveservices.vision.computervision.models import VisualFeatureTypes
+from msrest.authentication import CognitiveServicesCredentials
+import requests
 from PIL import Image
 from faker import Faker
 from flask import current_app
@@ -17,6 +20,9 @@ from albumy.extensions import db
 from albumy.models import User, Photo, Tag, Comment, Notification
 
 fake = Faker()
+endpoint = "https://mlinplab1.cognitiveservices.azure.com/"
+key = os.getenv('AZURE_VISION_KEY')
+computervision_client = ComputerVisionClient(endpoint, CognitiveServicesCredentials(key))
 
 
 def fake_admin():
@@ -58,6 +64,16 @@ def fake_follow(count=30):
     db.session.commit()
 
 
+def fake_azure_tags(image_path):
+    with open(image_path, "rb") as image_data:
+        # analyze_image_in_stream: sends images to Azure API for analysis, opened in binary mode
+        # visual_features: ask API to return tags
+        tags_analysis = computervision_client.analyze_image_in_stream(image_data, visual_features = [VisualFeatureTypes.tags])
+        # loops thru each tag and extracts the actual label for the tag
+        # then aggregates into list 'tags'
+        tags = [tag.name for tag in tags_analysis.tags]
+    return tags    
+
 def fake_tag(count=20):
     for i in range(count):
         tag = Tag(name=fake.word())
@@ -67,8 +83,8 @@ def fake_tag(count=20):
         except IntegrityError:
             db.session.rollback()
 
-
-def fake_photo(count=30):
+# reduce to 10 from 30 to prevent 429 error: free tier problem
+def fake_photo(count=10):
     # photos
     upload_path = current_app.config['ALBUMY_UPLOAD_PATH']
     for i in range(count):
@@ -77,6 +93,7 @@ def fake_photo(count=30):
         filename = 'random_%d.jpg' % i
         r = lambda: random.randint(128, 255)
         img = Image.new(mode='RGB', size=(800, 800), color=(r(), r(), r()))
+        img_path = os.path.join(upload_path, filename)
         img.save(os.path.join(upload_path, filename))
 
         photo = Photo(
@@ -88,13 +105,31 @@ def fake_photo(count=30):
             timestamp=fake.date_time_this_year()
         )
 
-        # tags
-        for j in range(random.randint(1, 5)):
-            tag = Tag.query.get(random.randint(1, Tag.query.count()))
+        # Attach Azure Tags
+        azure_tags = fake_azure_tags(img_path)
+        print(f"Azure Vision Tags for {filename}: {azure_tags}")
+
+        # Add the azure Tags to the photo
+        for tag_name in azure_tags:
+            # check if the tag is already in the database
+            tag = Tag.query.filter_by(name=tag_name).first()
+            if not tag:
+                tag = Tag(name = tag_name)
+                db.session.add(tag)
+                db.session.commit()
             if tag not in photo.tags:
                 photo.tags.append(tag)
-
         db.session.add(photo)
+
+        # photo.tags.append(tag)
+        # original ways to add tags
+        # for j in range(random.randint(1, 5)):
+        #     tag = Tag.query.get(random.randint(1, Tag.query.count()))
+        #     print("tag", tag)
+        #     if tag not in photo.tags:
+        #         photo.tags.append(tag)
+
+        # db.session.add(photo)
     db.session.commit()
 
 
