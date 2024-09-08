@@ -18,9 +18,14 @@ from albumy.forms.main import DescriptionForm, TagForm, CommentForm
 from albumy.models import User, Photo, Tag, Follow, Collect, Comment, Notification
 from albumy.notifications import push_comment_notification, push_collect_notification
 from albumy.utils import rename_image, resize_image, redirect_back, flash_errors
+from azure.cognitiveservices.vision.computervision import ComputerVisionClient
+from azure.cognitiveservices.vision.computervision.models import VisualFeatureTypes
+from msrest.authentication import CognitiveServicesCredentials
 
 main_bp = Blueprint('main', __name__)
-
+endpoint = "https://mlinplab1.cognitiveservices.azure.com/"
+key = os.getenv('AZURE_VISION_KEY')
+computervision_client = ComputerVisionClient(endpoint, CognitiveServicesCredentials(key))
 
 @main_bp.route('/')
 def index():
@@ -122,15 +127,34 @@ def upload():
     if request.method == 'POST' and 'file' in request.files:
         f = request.files.get('file')
         filename = rename_image(f.filename)
-        f.save(os.path.join(current_app.config['ALBUMY_UPLOAD_PATH'], filename))
+        img_path = os.path.join(current_app.config['ALBUMY_UPLOAD_PATH'], filename)
+        f.save(img_path)
         filename_s = resize_image(f, filename, current_app.config['ALBUMY_PHOTO_SIZE']['small'])
         filename_m = resize_image(f, filename, current_app.config['ALBUMY_PHOTO_SIZE']['medium'])
+       
         photo = Photo(
             filename=filename,
             filename_s=filename_s,
             filename_m=filename_m,
             author=current_user._get_current_object()
         )
+        with open(img_path, "rb") as image_data:
+        # analyze_image_in_stream: sends images to Azure API for analysis, opened in binary mode
+        # visual_features: ask API to return tags
+            tags_analysis = computervision_client.analyze_image_in_stream(image_data, visual_features = [VisualFeatureTypes.tags])
+            # loops thru each tag and extracts the actual label for the tag
+            # then aggregates into list 'tags'
+            azure_tags = [tag.name for tag in tags_analysis.tags]
+        print(f"Azure Vision Tags for {filename}: {azure_tags}")
+        for tag_name in azure_tags:
+            # check if the tag is already in the database
+            tag = Tag.query.filter_by(name=tag_name).first()
+            if not tag:
+                tag = Tag(name = tag_name)
+                db.session.add(tag)
+                db.session.commit()
+            if tag not in photo.tags:
+                photo.tags.append(tag)
         db.session.add(photo)
         db.session.commit()
     return render_template('main/upload.html')
