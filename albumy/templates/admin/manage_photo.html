@@ -47,7 +47,8 @@
                 <tr>
                     <td>
                         <a href="{{ url_for('main.show_photo', photo_id=photo.id) }}">
-                            <img src="{{ url_for('main.get_image', filename=photo.filename_s) }}" width="250">
+                            <img src="{{ url_for('main.get_image', filename=photo.filename_s) }}" width="250" 
+                            alt="{% if photo.description %}{{ photo.description }}{% elif photo.tags %}{% for tag in photo.tags %}{{ tag.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}No description{% endif %}">
                         </a>
                     </td>
                     <td>{{ photo.description }}</td>
