@@ -147,8 +147,6 @@ def upload():
             # then aggregates into list 'tags'
             azure_tags = [tag.name for tag in img_analysis.tags]
             azure_description = img_analysis.description.captions[0].text if img_analysis.description.captions else ""
-            # 1. could also add description 
-            # 2. use tags as string to form description. ml generated 
         print(f"Azure Vision Tags for {filename}: {azure_tags}")
         print(f"Azure Vision Description for {filename}: {azure_description}")
         # attach tags to the photo
@@ -161,6 +159,7 @@ def upload():
                 db.session.commit()
             if tag not in photo.tags:
                 photo.tags.append(tag)
+        # attach description to the photo
         if hasattr(photo, 'description'):
             photo.description = azure_description
         db.session.add(photo)
