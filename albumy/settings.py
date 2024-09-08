@@ -56,15 +56,15 @@ class BaseConfig:
 
     # MAIL_SERVER = os.getenv('MAIL_SERVER')
     MAIL_SERVER = os.getenv('MAIL_SERVER')
-    print(MAIL_SERVER)
+    # print(MAIL_SERVER)
     MAIL_PORT = 587
     # MAIL_USE_SSL = True
     MAIL_USE_TLS = True
     MAIL_USE_SSL = False
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
-    print(MAIL_USERNAME)
+    # print(MAIL_USERNAME)
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
-    print(MAIL_PASSWORD)
+    # print(MAIL_PASSWORD)
     MAIL_DEFAULT_SENDER = ('Albumy Admin', MAIL_USERNAME)
 
     DROPZONE_ALLOWED_FILE_TYPE = 'image'

@@ -142,11 +142,16 @@ def upload():
         with open(img_path, "rb") as image_data:
         # analyze_image_in_stream: sends images to Azure API for analysis, opened in binary mode
         # visual_features: ask API to return tags
-            tags_analysis = computervision_client.analyze_image_in_stream(image_data, visual_features = [VisualFeatureTypes.tags])
+            img_analysis = computervision_client.analyze_image_in_stream(image_data, visual_features = [VisualFeatureTypes.tags, VisualFeatureTypes.description])
             # loops thru each tag and extracts the actual label for the tag
             # then aggregates into list 'tags'
-            azure_tags = [tag.name for tag in tags_analysis.tags]
+            azure_tags = [tag.name for tag in img_analysis.tags]
+            azure_description = img_analysis.description.captions[0].text if img_analysis.description.captions else ""
+            # 1. could also add description 
+            # 2. use tags as string to form description. ml generated 
         print(f"Azure Vision Tags for {filename}: {azure_tags}")
+        print(f"Azure Vision Description for {filename}: {azure_description}")
+        # attach tags to the photo
         for tag_name in azure_tags:
             # check if the tag is already in the database
             tag = Tag.query.filter_by(name=tag_name).first()
@@ -156,6 +161,8 @@ def upload():
                 db.session.commit()
             if tag not in photo.tags:
                 photo.tags.append(tag)
+        if hasattr(photo, 'description'):
+            photo.description = azure_description
         db.session.add(photo)
         db.session.commit()
     return render_template('main/upload.html')
