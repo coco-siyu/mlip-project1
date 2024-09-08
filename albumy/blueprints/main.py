@@ -23,7 +23,8 @@ from azure.cognitiveservices.vision.computervision.models import VisualFeatureTy
 from msrest.authentication import CognitiveServicesCredentials
 
 main_bp = Blueprint('main', __name__)
-endpoint = "https://mlinplab1.cognitiveservices.azure.com/"
+endpoint = os.getenv('AZURE_ENDPOINT')
+# print(endpoint)
 key = os.getenv('AZURE_VISION_KEY')
 computervision_client = ComputerVisionClient(endpoint, CognitiveServicesCredentials(key))
 

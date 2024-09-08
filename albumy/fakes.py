@@ -20,7 +20,7 @@ from albumy.extensions import db
 from albumy.models import User, Photo, Tag, Comment, Notification
 
 fake = Faker()
-endpoint = "https://mlinplab1.cognitiveservices.azure.com/"
+endpoint = os.getenv('AZURE_ENDPOINT')
 key = os.getenv('AZURE_VISION_KEY')
 computervision_client = ComputerVisionClient(endpoint, CognitiveServicesCredentials(key))
 
